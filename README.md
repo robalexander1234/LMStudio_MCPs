@@ -1,26 +1,140 @@
-# LMStudio MCPs
+# LMStudio MCPs & Autonomous Email Agent
 
-A collection of Model Context Protocol (MCP) servers designed for use with [LM Studio](https://lmstudio.ai/). These servers extend your local LLM's capabilities with tools for executing code, sending emails, searching the web, and consulting larger cloud models.
+A collection of Model Context Protocol (MCP) servers for [LM Studio](https://lmstudio.ai/), plus a **fully autonomous email agent** powered by your local LLM.
 
-## 📋 Table of Contents
+---
 
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [MCP Servers](#mcp-servers)
-  - [DateTime](#datetime---current-datetime)
-  - [Email](#email---send-emails-via-gmail)
-  - [Groq](#groq---consult-larger-models)
-  - [Octave](#octave---numerical-computing)
-  - [Python](#python---python-code-execution)
-  - [Web Search](#web-search---duckduckgo-search)
-- [LM Studio Configuration](#lm-studio-configuration)
-- [Complete mcp.json Example](#complete-mcpjson-example)
-- [Troubleshooting](#troubleshooting)
+## 🤖 Featured: Autonomous Email Agent
 
-## Overview
+**Email your AI, get intelligent replies.** The email agent runs in the background, monitors your inbox, and uses your local LLM to respond — complete with web search for real-time information.
 
-MCP (Model Context Protocol) allows LLMs to use external tools. When running a local model in LM Studio, these MCP servers give your model superpowers:
+### What It Does
+
+| Feature | Description |
+|---------|-------------|
+| 📥 **Auto-Reply** | Monitors inbox every 2 minutes, replies to new emails |
+| 🔍 **Web Search** | Automatically searches the web when you ask about news, weather, etc. |
+| 🥠 **Fun Outgoing** | Sends fortune cookies, jokes, quotes, and daily digests hourly |
+| 🧠 **Local LLM** | All intelligence runs on YOUR machine via LM Studio |
+| 🛡️ **New-Only** | Only replies to emails received after agent starts (ignores old mail) |
+
+### Demo Conversation
+
+```
+You email: "What's the weather in Austin?"
+
+Agent:
+  📋 Search decision: SEARCH: weather Austin Texas
+  🔍 Searching web for: weather Austin Texas
+  ✅ Found 3 search results
+  🤔 Thinking of reply...
+  📤 Sending reply...
+
+You receive: "Hi! Based on current forecasts, Austin is expecting
+highs of 45°F with an Arctic blast moving through the region..."
+```
+
+### Quick Start
+
+```bash
+# 1. Install dependencies
+pip install ddgs
+
+# 2. Configure your Gmail credentials in the script (see setup below)
+
+# 3. Start LM Studio with your model loaded (e.g., Llama, Mistral, Qwen, etc.)
+
+# 4. Run the agent
+python agent/fun_agent_email.py
+```
+
+### Agent Setup
+
+#### Gmail Configuration
+
+The agent uses Gmail SMTP/IMAP. You need an **App Password** (not your regular password).
+
+1. Enable 2FA on your Google Account
+2. Go to [Google App Passwords](https://myaccount.google.com/apppasswords)
+3. Generate a password for "Mail"
+4. Edit the script's `EMAIL_CONFIG`:
+
+```python
+EMAIL_CONFIG = {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "imap_server": "imap.gmail.com",
+    "sender_email": "your-bot@gmail.com",        # Bot's email
+    "sender_password": "xxxx xxxx xxxx xxxx",    # App password
+    "recipient_email": "your-personal@gmail.com" # Where to send fortunes
+}
+```
+
+#### LM Studio Configuration
+
+Make sure LM Studio is running with:
+- A model loaded (any model works)
+- Local server enabled on port 1234 (default)
+
+### Agent Commands
+
+```bash
+# Run the agent (dual heartbeat loop)
+python fun_agent_email.py
+
+# Test commands
+python fun_agent_email.py test     # Send a test fortune
+python fun_agent_email.py digest   # Send a daily digest
+python fun_agent_email.py inbox    # Check inbox and summarize
+python fun_agent_email.py reply    # Check for emails and reply
+python fun_agent_email.py search   # Test web search
+python fun_agent_email.py list     # List recent emails
+```
+
+### Dual Heartbeat System
+
+The agent runs two loops:
+
+| Loop | Interval | Action |
+|------|----------|--------|
+| **Inbox Check** | Every 2 minutes | Check for new emails, auto-reply |
+| **Outgoing Mail** | Every 1 hour | Send fortune/joke/digest |
+
+Adjust timing in the script:
+```python
+INBOX_CHECK_INTERVAL = 120    # seconds
+OUTGOING_INTERVAL = 3600      # seconds
+```
+
+### Web Search
+
+The agent decides when to search automatically. It will search for:
+- Weather, forecasts
+- News, headlines, current events
+- Sports scores
+- Stock prices
+- Anything "today" / "latest" / "current"
+
+And skip search for:
+- Greetings ("hi", "how are you")
+- General knowledge it already knows
+- Personal questions
+
+### Example Emails You Can Send
+
+| Your Email | Agent Response |
+|------------|----------------|
+| "What's the weather?" | Searches web, replies with forecast |
+| "Latest AI news?" | Searches news, summarizes headlines |
+| "Tell me a joke" | Generates a joke (no search needed) |
+| "What's 2+2?" | Answers directly (no search needed) |
+| "Who won the Super Bowl?" | Searches, replies with winner |
+
+---
+
+## 📋 MCP Servers
+
+In addition to the email agent, this repo includes MCP servers that extend your local LLM's capabilities within LM Studio's chat interface.
 
 | Server | Description |
 |--------|-------------|
@@ -31,314 +145,113 @@ MCP (Model Context Protocol) allows LLMs to use external tools. When running a l
 | **python** | Execute Python code with persistent state |
 | **websearch** | Search the web via DuckDuckGo |
 
-## Prerequisites
+### Prerequisites
 
 - **LM Studio** (version with MCP support)
-- **Python 3.10+** installed and accessible from command line
-- **Windows** (the email and octave servers use Windows-specific features)
-- For Octave server: [GNU Octave](https://octave.org/download) installed
-- For Groq server: A [Groq API key](https://console.groq.com/)
+- **Python 3.10+**
+- **Windows** (email and octave servers use Windows-specific features)
+- For Octave: [GNU Octave](https://octave.org/download) installed
+- For Groq: A [Groq API key](https://console.groq.com/)
 
-## Installation
+### Installation
 
-1. **Clone this repository:**
-   ```bash
-   git clone https://github.com/yourusername/LMStudio_MCPs.git
-   cd LMStudio_MCPs
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/LMStudio_MCPs.git
+cd LMStudio_MCPs
 
-2. **Install Python dependencies for each server you want to use:**
-
-   ```bash
-   # For datetime (minimal dependencies)
-   pip install pytz
-
-   # For websearch
-   pip install beautifulsoup4 duckduckgo-search fastmcp requests uvicorn
-
-   # For groq
-   pip install mcp groq
-
-   # For python server (matplotlib optional but recommended)
-   pip install matplotlib numpy pandas
-   ```
-
-3. **Configure LM Studio** (see [LM Studio Configuration](#lm-studio-configuration))
+# Install dependencies
+pip install pytz                                    # datetime
+pip install beautifulsoup4 ddgs requests uvicorn    # websearch
+pip install mcp groq                                # groq
+pip install matplotlib numpy pandas                 # python server
+```
 
 ---
 
-## MCP Servers
+## MCP Server Details
 
 ### DateTime - Current Date/Time
 
-A simple server that returns the current date and time in a human-readable format.
+Returns current date and time in human-readable format.
 
-**Tools provided:**
-- `get_datetime` - Returns current date/time (e.g., "Monday, January 27, 2025 at 02:30:45 PM CST")
+**Tools:** `get_datetime`
 
-**Configuration:**
-Edit `datetime/server.py` to change your timezone:
+**Configuration** (`datetime/server.py`):
 ```python
 tz = pytz.timezone("US/Central")  # Change to your timezone
-```
-
-Common timezone values: `US/Eastern`, `US/Pacific`, `Europe/London`, `Asia/Tokyo`
-
-**mcp.json entry:**
-```json
-{
-  "datetime": {
-    "command": "python",
-    "args": ["C:/path/to/LMStudio_MCPs/datetime/server.py"]
-  }
-}
 ```
 
 ---
 
 ### Email - Send Emails via Gmail
 
-⚠️ **Requires Setup** - This server allows your LLM to send emails through Gmail.
+⚠️ **Requires Gmail App Password setup** (see Agent Setup above)
 
-**Tools provided:**
-- `send_email` - Send an email with recipient, subject, and body
+**Tools:** `send_email`
 
-#### Gmail Setup Instructions
-
-This server uses Gmail's SMTP with an **App Password** (not your regular Gmail password).
-
-**Step 1: Enable 2-Factor Authentication**
-1. Go to [Google Account Security](https://myaccount.google.com/security)
-2. Under "Signing in to Google," enable **2-Step Verification**
-
-**Step 2: Generate an App Password**
-1. Go to [Google App Passwords](https://myaccount.google.com/apppasswords)
-2. Select app: **Mail**
-3. Select device: **Windows Computer** (or other)
-4. Click **Generate**
-5. Copy the 16-character password (e.g., `abcd efgh ijkl mnop`)
-
-**Step 3: Configure the Server**
-
-Edit `email/server.py` and replace the placeholder credentials:
-
-```python
-$smtp.Credentials = New-Object System.Net.NetworkCredential('your-email@gmail.com', 'your-app-password')
-$smtp.Send('your-email@gmail.com', '{to}', '{subject}', '{body}')
-```
-
-Replace:
-- `your-email@gmail.com` with your Gmail address (appears twice)
-- `your-app-password` with the 16-character app password from Step 2
-
-**Example:**
-```python
-$smtp.Credentials = New-Object System.Net.NetworkCredential('john.doe@gmail.com', 'abcd efgh ijkl mnop')
-$smtp.Send('john.doe@gmail.com', '{to}', '{subject}', '{body}')
-```
-
-**Security Notes:**
-- ⚠️ Never commit your real credentials to version control
-- The app password only works for SMTP, not for logging into Gmail
-- You can revoke app passwords anytime from your Google Account
-
-**mcp.json entry:**
-```json
-{
-  "email": {
-    "command": "python",
-    "args": ["C:/path/to/LMStudio_MCPs/email/server.py"]
-  }
-}
-```
-
-**Platform Note:** This server uses PowerShell and only works on Windows.
+**Platform:** Windows only (uses PowerShell)
 
 ---
 
 ### Groq - Consult Larger Models
 
-This server allows your local LLM to "phone a friend" by querying Llama 3.3 70B via the Groq API. Useful when your local model needs help with complex questions.
+"Phone a friend" by querying Llama 3.3 70B via Groq API.
 
-**Tools provided:**
-- `ask_larger_model` - Send a question to Llama 70B and get a response
+**Tools:** `ask_larger_model`
 
-#### Groq Setup Instructions
-
-**Step 1: Get a Groq API Key**
-1. Sign up at [console.groq.com](https://console.groq.com/)
-2. Navigate to API Keys
-3. Create a new API key
-
-**Step 2: Set Environment Variable**
-
-**Windows (Command Prompt):**
-```cmd
-setx GROQ_API_KEY "gsk_your_api_key_here"
-```
-
-**Windows (PowerShell):**
-```powershell
-[Environment]::SetEnvironmentVariable("GROQ_API_KEY", "gsk_your_api_key_here", "User")
-```
-
-**Linux/macOS:**
-```bash
-export GROQ_API_KEY="gsk_your_api_key_here"
-# Add to ~/.bashrc or ~/.zshrc to persist
-```
-
-**Step 3: Restart LM Studio** after setting the environment variable.
-
-**mcp.json entry:**
-```json
-{
-  "groq": {
-    "command": "python",
-    "args": ["C:/path/to/LMStudio_MCPs/grok/server.py"]
-  }
-}
-```
+**Setup:**
+1. Get API key from [console.groq.com](https://console.groq.com/)
+2. Set in mcp.json (see example below)
 
 ---
 
 ### Octave - Numerical Computing
 
-Execute GNU Octave/MATLAB code directly from your LLM. Maintains a persistent Octave session with workspace variables.
+Execute GNU Octave/MATLAB code with persistent workspace.
 
-**Tools provided:**
-- `octave_execute` - Execute Octave/MATLAB code
-- `octave_get_variable` - Get a variable's value
-- `octave_set_variable` - Set a variable
-- `octave_list_workspace` - List all workspace variables
-- `octave_save_figure` - Save current plot to PNG
-- `octave_clear` - Clear workspace
-- `octave_help` - Get help on functions
-- `octave_run_script` - Run a .m script file
-- `octave_create_script` - Create a new .m script
-- `octave_list_scripts` - List scripts in workspace
+**Tools:**
+- `octave_execute` - Execute code
+- `octave_get_variable` / `octave_set_variable`
+- `octave_list_workspace` / `octave_clear`
+- `octave_save_figure` - Save plots to PNG
+- `octave_help` / `octave_run_script` / `octave_create_script`
 
-#### Octave Setup Instructions
-
-**Step 1: Install GNU Octave**
-1. Download from [octave.org/download](https://octave.org/download)
-2. Install to the default location
-
-**Step 2: Update the Server Path**
-
-Edit `octave/octave_mcp_server.py` and update the Octave path if different:
-
-```python
-self.octave_process = subprocess.Popen(
-    [r"C:\Program Files\GNU Octave\Octave-10.1.0\octave-launch.exe", 
-     "--no-gui", "--interactive", "--quiet"],
-    ...
-)
-```
-
-**mcp.json entry:**
-```json
-{
-  "octave": {
-    "command": "python",
-    "args": ["C:/path/to/LMStudio_MCPs/octave/octave_mcp_server.py"]
-  }
-}
-```
-
-**Platform Note:** The default configuration is for Windows. For Linux/macOS, change the Octave path to just `"octave"` (assuming it's in your PATH).
+**Setup:** Update Octave path in `octave/octave_mcp_server.py`
 
 ---
 
-### Python - Python Code Execution
+### Python - Code Execution
 
-Execute Python code with a persistent namespace. Variables, imports, and state persist between calls.
+Execute Python with persistent namespace between calls.
 
-**Tools provided:**
-- `python_execute` - Execute Python code
-- `python_get_variable` - Get a variable's value
-- `python_set_variable` - Set a variable
-- `python_list_variables` - List all user-defined variables
-- `python_clear` - Clear all variables
-- `python_save_figure` - Save matplotlib figure
-- `python_create_script` - Create a .py script
-- `python_run_script` - Run a script from workspace
-- `python_list_scripts` - List scripts in workspace
-- `python_pip_install` - Install packages via pip
-- `python_help` - Get help on Python topics
-
-**mcp.json entry:**
-```json
-{
-  "python": {
-    "command": "python",
-    "args": ["C:/path/to/LMStudio_MCPs/python/python_mcp_server.py"]
-  }
-}
-```
-
-Scripts and figures are saved to the `python/workspace/` directory.
+**Tools:**
+- `python_execute` - Execute code
+- `python_get_variable` / `python_set_variable` / `python_list_variables`
+- `python_clear` / `python_save_figure`
+- `python_create_script` / `python_run_script` / `python_list_scripts`
+- `python_pip_install` / `python_help`
 
 ---
 
-### Web Search - DuckDuckGo Search
+### Web Search - DuckDuckGo
 
-Search the web and fetch page content using DuckDuckGo (no API key required).
+Search the web without API keys.
 
-**Tools provided:**
-- `web_search` - Search the web, returns titles, snippets, and URLs
-- `get_page_content` - Fetch and extract text from a webpage
-
-**Dependencies:**
-```bash
-pip install beautifulsoup4 duckduckgo-search fastmcp requests uvicorn
-```
-
-**mcp.json entry:**
-```json
-{
-  "websearch": {
-    "command": "python",
-    "args": ["C:/path/to/LMStudio_MCPs/websearch/main.py"]
-  }
-}
-```
+**Tools:**
+- `web_search` - Search, returns titles/snippets/URLs
+- `get_page_content` - Fetch and extract page text
 
 ---
 
 ## LM Studio Configuration
 
-MCP servers are configured in LM Studio's `mcp.json` file.
+### mcp.json Location
 
-### Locating mcp.json
-
-The file is typically located at:
 - **Windows:** `%USERPROFILE%\.lmstudio\mcp.json`
-- **macOS:** `~/.lmstudio/mcp.json`
-- **Linux:** `~/.lmstudio/mcp.json`
+- **macOS/Linux:** `~/.lmstudio/mcp.json`
 
-If the file doesn't exist, create it.
-
-### Configuration Format
-
-```json
-{
-  "mcpServers": {
-    "server-name": {
-      "command": "python",
-      "args": ["path/to/server.py"]
-    }
-  }
-}
-```
-
-**Important:** Use forward slashes (`/`) in paths, even on Windows, or escape backslashes (`\\`).
-
----
-
-## Complete mcp.json Example
-
-Here's a complete configuration with all servers (adjust paths to match your setup):
+### Complete mcp.json Example
 
 ```json
 {
@@ -353,7 +266,7 @@ Here's a complete configuration with all servers (adjust paths to match your set
     },
     "groq": {
       "command": "python",
-      "args": ["C:/Users/YourName/LMStudio_MCPs/grok/server.py"],
+      "args": ["C:/Users/YourName/LMStudio_MCPs/groq/server.py"],
       "env": {
         "GROQ_API_KEY": "gsk_your_api_key_here"
       }
@@ -374,60 +287,90 @@ Here's a complete configuration with all servers (adjust paths to match your set
 }
 ```
 
-**Alternative: Specify full Python path** if `python` isn't in your PATH:
-```json
-{
-  "command": "C:/Users/YourName/AppData/Local/Programs/Python/Python312/python.exe",
-  "args": ["C:/Users/YourName/LMStudio_MCPs/datetime/server.py"]
-}
-```
+**Tip:** Use forward slashes in paths, or escape backslashes (`\\`).
 
 ---
 
 ## Troubleshooting
 
-### Server Not Connecting
+### Email Agent Issues
 
-1. **Check Python path:** Run `python --version` in terminal. If not found, use the full path to python.exe.
-2. **Check file paths:** Ensure paths in mcp.json are correct and use forward slashes.
-3. **Restart LM Studio:** After changing mcp.json, restart LM Studio completely.
+| Problem | Solution |
+|---------|----------|
+| Can't connect to LM Studio | Ensure LM Studio is running with local server on port 1234 |
+| Search not working | Run `pip install ddgs` and test with `python fun_agent_email.py search` |
+| Not replying to emails | Check Gmail App Password is correct; check IMAP is enabled in Gmail settings |
+| Replying to old emails | Agent should ignore old mail on startup; check console output |
 
-### Email Server Issues
+### MCP Server Issues
 
-- **Authentication failed:** Ensure you're using an App Password, not your Gmail password.
-- **Connection refused:** Check your firewall isn't blocking outbound SMTP (port 587).
-- **"Less secure apps" error:** You need 2FA enabled and an App Password.
-
-### Groq Server Issues
-
-- **API key not found:** Ensure `GROQ_API_KEY` environment variable is set and LM Studio was restarted.
-- **Rate limits:** Groq has rate limits on the free tier; wait and retry.
-
-### Octave Server Issues
-
-- **Octave not found:** Update the path in `octave_mcp_server.py` to match your installation.
-- **Graphics issues:** The server uses gnuplot; ensure it's installed with Octave.
+| Problem | Solution |
+|---------|----------|
+| Server not connecting | Check Python path; use full path if needed |
+| Email auth failed | Use App Password, not Gmail password |
+| Groq API errors | Check API key; watch for rate limits on free tier |
+| Octave not found | Update path in `octave_mcp_server.py` |
 
 ### General Debugging
 
-Test a server manually to see error messages:
+Test any server manually:
 ```bash
 python path/to/server.py
 ```
 
-Then paste this JSON and press Enter:
+Then paste:
 ```json
 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
 ```
 
-You should see a JSON response. Press Ctrl+C to exit.
+You should see a JSON response.
+
+---
+
+## Project Structure
+
+```
+LMStudio_MCPs/
+├── agent/
+│   └── fun_agent_email.py    # 🤖 Autonomous email agent
+├── datetime/
+│   └── server.py
+├── email/
+│   └── server.py
+├── groq/
+│   └── server.py
+├── octave/
+│   └── octave_mcp_server.py
+├── python/
+│   └── python_mcp_server.py
+├── websearch/
+│   └── main.py
+└── README.md
+```
+
+---
+
+## What's Next?
+
+Ideas for extending the email agent:
+
+- **Reminders** - "Remind me in 2 hours" → emails you later
+- **URL Summarizer** - Send a link, get a summary
+- **Daily News Digest** - Proactive morning headlines
+- **Stock Alerts** - "Alert me if AAPL drops below $200"
+- **Todo List** - Manage tasks via email
+- **Image Generation** - Generate images and email them back
 
 ---
 
 ## License
 
-MIT License - See individual server directories for any additional licenses.
+MIT License
 
 ## Contributing
 
-Contributions welcome! Please open an issue or pull request.
+Contributions welcome! Open an issue or pull request.
+
+---
+
+**Built with local AI in mind.** No cloud dependencies for core functionality — your data stays on your machine.
