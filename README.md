@@ -322,7 +322,7 @@ Search the web without API keys.
 }
 ```
 
-**Tip / Совет:** Use forward slashes in paths, or escape backslashes (`\\`). / Используйте прямые косые черты в путях или экранируйте обратные (`\\`).
+**Tips / Совет:** Use forward slashes in paths, or escape backslashes (`\\`). / Используйте прямые косые черты в путях или экранируйте обратные (`\\`).
 
 ---
 
